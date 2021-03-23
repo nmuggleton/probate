@@ -12,6 +12,7 @@ local  = '.'
 bucket = 'probate-calendar'
 client = boto3.client('s3', region_name='us-west-2')
 path = '/Users/naomimuggleton/Documents/work/github/probate/03-ocr'
+next_token = ''
 
 ## Import files
 os.chdir(path)

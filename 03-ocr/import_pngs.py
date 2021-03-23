@@ -16,6 +16,7 @@ def import_pngs(prefix, local, bucket, client):
         'Bucket':bucket,
         'Prefix':prefix,
     }
+
     while next_token is not None:
         kwargs = base_kwargs.copy()
         if next_token != '':
@@ -40,10 +41,9 @@ def import_pngs(prefix, local, bucket, client):
         client.download_file(bucket, k, dest_pathname)
         print(k)
 
-
-while next_token is not None:
-    kwargs = base_kwargs.copy()
-    if next_token != '':
-        kwargs.update({'ContinuationToken': next_token})
-    results = client.list_objects_v2(**kwargs)
-    contents = results.get('Contents')
+    while next_token is not None:
+        kwargs = base_kwargs.copy()
+        if next_token != '':
+            kwargs.update({'ContinuationToken': next_token})
+        results = client.list_objects_v2(**kwargs)
+        contents = results.get('Contents')
