@@ -37,3 +37,10 @@ vignettes/*.pdf
 
 # R Environment Variables
 .Renviron
+
+# Directories
+probate_records/
+meetings/
+
+# Mac
+.DS_Store
