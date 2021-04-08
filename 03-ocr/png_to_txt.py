@@ -1,3 +1,12 @@
+"""
+Script name: png_to_txt.py
+Purpose of script: Function to apply tesseract to images and export text
+Dependencies: None
+Author: Naomi Muggleton
+Date created: 24/03/2021
+Date last modified: 08/04/2021
+"""
+
 import cv2
 import pytesseract
 import re

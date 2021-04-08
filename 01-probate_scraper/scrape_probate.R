@@ -41,12 +41,6 @@ s3source(
   bucket = 'probate-calendar'
 )
 
-## Get R environment parameters
-save_object(
-  '/inputs/.Renviron', 
-  bucket = 'probate-calendar'
-)
-
 # Set parameters ----------------------------------------------------------
 
 ## Key urls
@@ -54,10 +48,15 @@ base_url <- 'https://probatesearch.service.gov.uk'
 probate_url <- paste(base_url, 'Calendar%s#calendar', sep = '/')
 
 ## Parameter inputs
+### Don't search for two-letter prefixes that are extremely uncommon in 
+### British surnames (e.g., 'Zj')
 names <- names[page_count > 0]$name
+### Range of years that we want to scrape
 years <- 1858:1995
+### Ten second lag recommended by robots.txt
 lag <- 10
-time <- as.numeric(Sys.time()) - 10
+### Record the time so that we can ensure a ten second lag for first scrape
+time <- as.numeric(Sys.time())
 
 ## Proxies for rotation
 ips <- ip %>% 
@@ -153,7 +152,7 @@ for (i in 1:length(years)) {
       if (sample(1:10, 1) == 1) {
         
         read_html('https://probatesearch.service.gov.uk/#calendar')
-        Sys.sleep(10 + rnorm(1))
+        Sys.sleep(lag + rnorm(1))
         
       }
       

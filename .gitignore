@@ -184,6 +184,7 @@ dmypy.json
 # Cython debug symbols
 cython_debug/
 
-# Raw files
-03-ocr/output/
-03-ocr/raw-files/
+# Directories
+03-ocr/output/*
+03-ocr/raw-files/*
+meetings/*

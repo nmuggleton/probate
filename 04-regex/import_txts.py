@@ -1,16 +1,7 @@
-"""
-Script name: import_pngs.py
-Purpose of script: Function to import files from S3 bucket locally
-Dependencies: None
-Author: Naomi Muggleton
-Date created: 24/03/2021
-Date last modified: 08/04/2021
-"""
-
 import boto3
 import os
 
-def import_pngs(prefix, local, bucket, client):
+def import_txts(prefix, local, bucket, client):
     """
     params:
     - prefix: pattern to match in s3

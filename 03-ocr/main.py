@@ -1,3 +1,15 @@
+"""
+Script name: main.py
+Purpose of script: To take clean files, run tesseract, and store output
+Dependencies:
+    02-clean_files/*
+    03-ocr/import_pngs.py
+    03-ocr/png_to_txt.py
+Author: Naomi Muggleton
+Date created: 24/03/2021
+Date last modified: 08/04/2021
+"""
+
 import sys
 from import_pngs import *
 import os

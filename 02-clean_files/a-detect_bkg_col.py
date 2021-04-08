@@ -1,3 +1,13 @@
+"""
+Script name: a-detect_bkg_col.py
+Purpose of script: To select a random page per year and determine whether it
+    is black-on-white or white-on-black
+Dependencies: 01-probate_scraper/scrape_probate.R
+Author: Naomi Muggleton
+Date created: 24/03/2021
+Date last modified: 08/04/2021
+"""
+
 import boto3
 import cv2
 import numpy as np
@@ -5,6 +15,7 @@ from io import BytesIO
 import pandas as pd
 
 ## Parameters
+### Years that I want to check
 years = list(range(1858, 1996))
 dir = 'raw-files/'
 bucket_name = 'probate-calendar'
