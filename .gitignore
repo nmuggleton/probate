@@ -188,3 +188,4 @@ cython_debug/
 03-ocr/output/*
 03-ocr/raw-files/*
 meetings/*
+data/*
