@@ -1,0 +1,38 @@
+
+1859: 
+- "HARY William" should be "HARRY William"
+- "who died\n19 October 1898" should be "who died\n19 October 1858"
+
+1865:
+- "who died\n12 Februay 1865" should be "who died\n12 February 1865"
+
+1866:
+- "SHERWOOD Andrew." should be "SHEWARD Andrew."
+- "SHERWELL John Talwin." should be "SHEWELL John Talwin."
+
+1873:
+- "who died 9 January 1873" should be "who died 9 January\n1873"
+
+1777:
+- Remove "TODD NAYLOR" because the layout is too strange!
+
+1778:
+- "who died 26 June 1872" should be "who died 26 June\n1872"
+
+1883:
+- "who died 12 January 1883" should be "who died 15 January 1883"
+
+1888:
+- "Personal Estate £2,502 13s. 8d." should be "Personal Estate £2,052 13s. 8d."
+
+1889:
+- "who died 21 De-\cember 1888" should be "who died 21 De-\ncember 1888"
+
+1891:
+- "who died\n27 November 1891" should be "who died\n27 September 1891"
+- "who died 20 June 1891" should be "who died 20 June\n1891"
+
+1892:
+- "Administration Bury St. Edmund's 29 February" should be "Administration Bury 
+  St. Edmunds 29 February"
+  
