@@ -1,42 +1,38 @@
 import os
-import numpy as np
-import cv2
 import re
+from functions.files import filenames
+import cv2
+import numpy as np
+from datetime import datetime
 
 # Parameters
-path = '/Volumes/T7/probate_files/resized/1894'
+i = 'despeckled'
+o = 'deskew'
+year = 1858
 
-files = []
-# r=root, d=directories, f = files
-for r, d, f in os.walk(path):
-    for file in f:
-        if '.png' in file:
-            files.append(os.path.join(r, file))
+# Make directories
+years = list(range(1858, 1996))
+for y in years:
+    directory = '/Volumes/T7/probate_files/%s/%d' % (o, y)
+    if not os.path.exists(directory):
+        os.makedirs(directory)
 
-files.sort()
+# Import files
+files = filenames(i, year)
 
-files = [file for file in files if not ('/._' in file)]
-
-# construct the argument parse and parse the arguments
-# ap = argparse.ArgumentParser()
-# ap.add_argument("-i", "--image", required=True,
-# 	help="path to input image file")
-# args = vars(ap.parse_args())
-# load the image from disk
-#file = files[4]
-for file in files[:100]:
-    image = cv2.imread(file)
-    location = re.sub('resized', '3_deskew', file)
+for file in files:
+    img = cv2.imread(file)
 
     # convert the image to grayscale and flip the foreground
     # and background to ensure foreground is now "white" and
     # the background is "black"
-    gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+    gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
     gray = cv2.bitwise_not(gray)
     # threshold the image, setting all foreground pixels to
     # 255 and all background pixels to 0
-    thresh = cv2.threshold(gray, 0, 255,
-        cv2.THRESH_BINARY | cv2.THRESH_OTSU)[1]
+    thresh = cv2.threshold(
+        gray, 0, 255, cv2.THRESH_BINARY | cv2.THRESH_OTSU
+    )[1]
 
     # grab the (x, y) coordinates of all pixel values that
     # are greater than zero, then use these coordinates to
@@ -50,7 +46,7 @@ for file in files[:100]:
     # need to add 90 degrees to the angle
 
     if angle % 90 == 0:
-        cv2.imwrite(location, image)
+        continue
     else:
         if angle > 45:
             angle = -(90 - angle)
@@ -59,18 +55,20 @@ for file in files[:100]:
 
         if abs(angle) < 2:
             # rotate the image to deskew it
-            (h, w) = image.shape[:2]
+            (h, w) = img.shape[:2]
             center = (w // 2, h // 2)
             M = cv2.getRotationMatrix2D(center, angle, 1.0)
-            rotated = cv2.warpAffine(image, M, (w, h),
-                flags=cv2.INTER_CUBIC, borderMode=cv2.BORDER_REPLICATE)
+            img = cv2.warpAffine(
+                img, M, (w, h),
+                flags=cv2.INTER_CUBIC,
+                borderMode=cv2.BORDER_REPLICATE
+            )
 
         else:
-            rotated = image
+            continue
 
-        # draw the correction angle on the image so we can validate it
-        cv2.putText(rotated, "Angle: {:.2f} degrees".format(angle),
-            (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255), 2)
-        # show the output image
-        cv2.imwrite(location, rotated)
-        print(file + "[INFO] angle: {:.3f}".format(angle))
+    # Save file
+    dest = re.sub(i, o, file)
+    cv2.imwrite(dest, img)
+
+    print(dest + ' complete at ' + datetime.now().strftime("%H:%M:%S"))

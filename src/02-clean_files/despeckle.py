@@ -1,30 +1,81 @@
-"""
-Script name: d-despeckle.py
-Purpose of script:
-Dependencies:
-Author: Naomi Muggleton
-Date created: 15/03/2021
-Date last modified: 08/04/2021
-"""
-
+# Step 3
+import os
+import re
+from functions.files import filenames
 import cv2
 import numpy as np
+from datetime import datetime
 
-def despeckle(img):
-    """
-    param:
-    - img: speckly image that we want to clean
-    """
-    _, blackAndWhite = cv2.threshold(img, 127, 255, cv2.THRESH_BINARY_INV)
+# Parameters
+i = 'clipped'
+o = 'despeckled'
+year = 1858
 
-    nlabels, labels, stats, centroids = cv2.connectedComponentsWithStats(blackAndWhite, None, None, None, 8, cv2.CV_32S)
+# Make directories
+years = list(range(1858, 1996))
+for y in years:
+    directory = '/Volumes/T7/probate_files/%s/%d' % (o, y)
+    if not os.path.exists(directory):
+        os.makedirs(directory)
 
-    sizes = stats[1:, -1] #get CC_STAT_AREA component
-    img2 = np.zeros((labels.shape), np.uint8)
+# Import files
+files = filenames(i, year)
 
-    for j in range(0, nlabels - 1):
-        if sizes[j] >= 30:   #filter small dotted regions
-            img2[labels == j + 1] = 255
+files = [file for file in files if int(re.findall(r'\d+', file)[1]) < 1859]
 
-    res = cv2.bitwise_not(img2)
-    return res
+for file in files:
+    # Load image, grayscale, Gaussian blur, Otsu's threshold
+    img = cv2.imread(file)
+    gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+
+    blur = cv2.GaussianBlur(gray, (7, 7), 0)
+    thresh = cv2.threshold(
+        blur, 0, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU
+    )[1]
+
+    # Create rectangular structuring element and dilate
+    white_bg = 255 * np.ones_like(img)
+    kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (15, 1))
+    dilate = cv2.dilate(thresh, kernel, iterations = 10)
+
+    # Find contours and draw rectangle
+    cnts = cv2.findContours(dilate, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    cnts = cnts[0] if len(cnts) == 2 else cnts[1]
+
+    for c in cnts:
+        x, y, w, h = cv2.boundingRect(c)
+        roi = img[y:y + h, x:x + w]
+        if h >= 15:
+            cv2.rectangle(img, (x, y), (x + w, y + h), (255, 255, 255), 1)
+            white_bg[y:y + h, x:x + w] = roi
+
+    img = white_bg
+
+    # Vertical
+    white_bg = 255 * np.ones_like(img)
+    kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (6, 4))
+    dilate = cv2.dilate(thresh, kernel, iterations = 11)
+
+    # Find contours and draw rectangle
+    cnts = cv2.findContours(dilate, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    cnts = cnts[0] if len(cnts) == 2 else cnts[1]
+
+    for c in cnts:
+        x, y, w, h = cv2.boundingRect(c)
+        roi = img[y:y + h, x:x + w]
+        if ((w > 80) & (h > 60) | (w > 150)):
+            cv2.rectangle(img, (x, y), (x + w, y + h), (255, 255, 255), 1)
+            white_bg[y:y + h, x:x + w] = roi
+
+    img = white_bg
+
+    # cv2.imshow('thresh', thresh)
+    # cv2.imshow('dilate', dilate)
+    # cv2.imshow('image', img)
+    # cv2.waitKey()
+
+    # Save file
+    dest = re.sub(i, o, file)
+    cv2.imwrite(dest, img)
+
+    print(dest + ' complete at ' + datetime.now().strftime("%H:%M:%S"))
