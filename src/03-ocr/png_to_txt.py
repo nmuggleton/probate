@@ -18,6 +18,7 @@ from distutils.spawn import find_executable
 from PIL import Image, ImageOps
 from datetime import datetime
 
+
 class PyTessyError(Exception):
     """
     PyTessyError class
@@ -25,7 +26,6 @@ class PyTessyError(Exception):
     Empty subclass of Exception to throw module-specific errors.
     """
     pass
-
 
 
 class TesseractHandler(object):
@@ -37,8 +37,6 @@ class TesseractHandler(object):
     _lib = None
     _api = None
 
-
-
     class TessBaseAPI(ctypes._Pointer):
         """
         TessBaseAPI
@@ -47,8 +45,6 @@ class TesseractHandler(object):
         """
 
         _type_ = type('_TessBaseAPI', (ctypes.Structure,), {})
-
-
 
     def __init__(self, lib_path=None,  data_path=None, language='eng'):
         """
@@ -66,7 +62,6 @@ class TesseractHandler(object):
                                       language.encode('ascii')):
             raise PyTessyError('Failed to initalize Tesseract-OCR library.')
 
-
     def get_text(self):
         """
         Gets text as utf-8 decoded string
@@ -79,8 +74,6 @@ class TesseractHandler(object):
         if result:
             return result.decode('utf-8')
 
-
-
     def get_text_raw(self):
         """
         Gets text as raw bytes data
@@ -90,8 +83,6 @@ class TesseractHandler(object):
 
         self._check_setup()
         return self._lib.TessBaseAPIGetUTF8Text(self._api)
-
-
 
     def set_image(self, imagedata, width, height, bytes_per_pixel, bytes_per_line,
                   resolution):
@@ -114,8 +105,6 @@ class TesseractHandler(object):
                                       bytes_per_pixel, bytes_per_line)
         self._lib.TessBaseAPISetSourceResolution(self._api, resolution)
 
-
-
     @classmethod
     def setup_lib(cls, lib_path=None):
         """
@@ -129,7 +118,7 @@ class TesseractHandler(object):
             return
         lib_path = ctypes.util.find_library(lib_path)
         if lib_path is None:
-             raise PyTessyError('Ctypes couldn\'t find Tesseract-OCR library')
+            raise PyTessyError('Ctypes couldn\'t find Tesseract-OCR library')
         cls._lib = lib = ctypes.CDLL(lib_path)
 
         lib.TessBaseAPICreate.restype = cls.TessBaseAPI         # handle
@@ -152,11 +141,9 @@ class TesseractHandler(object):
         lib.TessBaseAPIGetUTF8Text.restype = ctypes.c_char_p        # text
         lib.TessBaseAPIGetUTF8Text.argtypes = (cls.TessBaseAPI, )   # handle
 
-        lib.TessBaseAPISetSourceResolution.restype = None               # void
-        lib.TessBaseAPISetSourceResolution.argtypes = (cls.TessBaseAPI, # handle
-                                                       ctypes.c_int)    # ppi
-
-
+        lib.TessBaseAPISetSourceResolution.restype = None                # void
+        lib.TessBaseAPISetSourceResolution.argtypes = (cls.TessBaseAPI,  # handle
+                                                       ctypes.c_int)     # ppi
 
     def _check_setup(self):
         """
@@ -171,8 +158,6 @@ class TesseractHandler(object):
         if not self._api:
             raise PyTessyError('Tesseract handler api not created.')
 
-
-
     def __del__(self):
         """
         Disconnects TessBaseAPI when instance is deleted
@@ -184,7 +169,6 @@ class TesseractHandler(object):
         if not getattr(self, 'closed', False):
             self._lib.TessBaseAPIDelete(self._api)
             self.closed = True
-
 
 
 class PyTessy(object):
@@ -199,8 +183,6 @@ class PyTessy(object):
     TESSERACT_DIRNAME = 'Tesseract-OCR'
     TESSERACT_DEFAULT_HORIZONTAL_DPI = 70
     VERSION = '0.0.1'
-
-
 
     def __init__(self, tesseract_path=None, api_version=None, lib_path=None,
                  data_path=None, language='eng', verbose_search=False):
@@ -309,8 +291,6 @@ class PyTessy(object):
                                       language=language)
         chdir(origPath)
 
-
-
     def justread(self, raw_image_ctypes, width, height, bytes_per_pixel,
                   bytes_per_line, resolution=96):
         """
@@ -331,8 +311,6 @@ class PyTessy(object):
                              bytes_per_line, resolution)
         return self._tess.get_text()
 
-
-
     def justread_raw(self, raw_image_ctypes, width, height, bytes_per_pixel,
                      bytes_per_line, resolution=96):
         """
@@ -352,8 +330,6 @@ class PyTessy(object):
         self._tess.set_image(raw_image_ctypes, width, height, bytes_per_pixel,
                              bytes_per_line, resolution)
         return self._tess.get_text()
-
-
 
     def read(self, imagedata, width, height, bytes_per_pixel, resolution=96,
              raw=False):
@@ -382,7 +358,7 @@ class PyTessy(object):
 
 def write_text_out(txt, image_path):
     text_path = re.sub('.png', '.txt', image_path, flags = re.I)
-    text_path = re.sub('raw-files', 'out', text_path, flags = re.I)
+    text_path = re.sub('cleaned', 'out', text_path, flags = re.I)
     f = open(text_path, 'w')
     f.write(txt)
     f.close()

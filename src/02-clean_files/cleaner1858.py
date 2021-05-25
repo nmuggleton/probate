@@ -8,6 +8,7 @@ import ruptures as rpt
 import re
 from datetime import datetime
 
+
 def filenames(input_path, year):
     # Find files
     path = '/Volumes/T7/probate_files/' + input_path + '/' + str(year)
@@ -70,14 +71,34 @@ compl = [re.sub(o, i, c) for c in compl]
 files = filenames(i, year)
 files = [f for f in files if f not in compl]
 
+dimen = (2774, 4498)
+
 for file in files:
+
+    # Read in image
+    img = cv2.imread(file, 0)
+    img = cv2.resize(img, dimen, interpolation = cv2.INTER_AREA)
+
+    """
+    REMOVE LARGE BLOBS
+    """
+    blur = cv2.GaussianBlur(img, (7, 7), 0)
+    thresh = cv2.threshold(
+        blur, 0, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU
+    )[1]
+
+    # Find contours and draw rectangle
+    cnts = cv2.findContours(thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    cnts = cnts[0] if len(cnts) == 2 else cnts[1]
+
+    for c in cnts:
+        x, y, w, h = cv2.boundingRect(c)
+        if h >= 200:
+            cv2.rectangle(img, (x, y), (x + w, y + h), (255, 255, 255), -1)
 
     """
     TEXT BLOCK
     """
-    # Read in image
-    img = cv2.imread(file, 0)
-
     # Count number of black pixels in each column
     points = np.count_nonzero(img == 0, axis = 0)
 
@@ -105,23 +126,7 @@ for file in files:
         # Turn all pixels in this range white
         img[:, end:] = 255
 
-    """
-    REMOVE LARGE BLOBS
-    """
-    blur = cv2.GaussianBlur(img, (7, 7), 0)
-    thresh = cv2.threshold(
-        blur, 0, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU
-    )[1]
-
-    # Find contours and draw rectangle
-    cnts = cv2.findContours(thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-    cnts = cnts[0] if len(cnts) == 2 else cnts[1]
-
-    for c in cnts:
-        x, y, w, h = cv2.boundingRect(c)
-        if h >= 200:
-            cv2.rectangle(img, (x, y), (x + w, y + h), (255, 255, 255), -1)
-
+    """REMOVE BLOBS"""
     # Create rectangular structuring element and dilate
     white_bg = 255 * np.ones_like(img)
     kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (15, 1))
