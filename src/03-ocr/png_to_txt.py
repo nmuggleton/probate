@@ -2,10 +2,10 @@
 Script name: png_to_txt.py
 Purpose of script: Function to apply tesseract to images and export text
 Dependencies: None
-Author: Naomi Muggleton (edited by crahal)
+Author: crahal
 Based on: tbattz/pytessy
 Date created: 24/03/2021
-Date last modified: 11/04/2021
+Date last modified: 28/05/2021
 """
 
 import re
@@ -18,7 +18,6 @@ from distutils.spawn import find_executable
 from PIL import Image, ImageOps
 from datetime import datetime
 
-
 class PyTessyError(Exception):
     """
     PyTessyError class
@@ -26,6 +25,7 @@ class PyTessyError(Exception):
     Empty subclass of Exception to throw module-specific errors.
     """
     pass
+
 
 
 class TesseractHandler(object):
@@ -37,6 +37,8 @@ class TesseractHandler(object):
     _lib = None
     _api = None
 
+
+
     class TessBaseAPI(ctypes._Pointer):
         """
         TessBaseAPI
@@ -45,6 +47,8 @@ class TesseractHandler(object):
         """
 
         _type_ = type('_TessBaseAPI', (ctypes.Structure,), {})
+
+
 
     def __init__(self, lib_path=None,  data_path=None, language='eng'):
         """
@@ -62,6 +66,7 @@ class TesseractHandler(object):
                                       language.encode('ascii')):
             raise PyTessyError('Failed to initalize Tesseract-OCR library.')
 
+
     def get_text(self):
         """
         Gets text as utf-8 decoded string
@@ -74,6 +79,8 @@ class TesseractHandler(object):
         if result:
             return result.decode('utf-8')
 
+
+
     def get_text_raw(self):
         """
         Gets text as raw bytes data
@@ -83,6 +90,8 @@ class TesseractHandler(object):
 
         self._check_setup()
         return self._lib.TessBaseAPIGetUTF8Text(self._api)
+
+
 
     def set_image(self, imagedata, width, height, bytes_per_pixel, bytes_per_line,
                   resolution):
@@ -105,6 +114,14 @@ class TesseractHandler(object):
                                       bytes_per_pixel, bytes_per_line)
         self._lib.TessBaseAPISetSourceResolution(self._api, resolution)
 
+    def cstr(string):
+        return ctypes.create_string_buffer(string.encode("utf-8"))
+
+    def set_variable(self, key, val):
+        self._check_setup()
+        self._lib.TessBaseAPISetVariable(self._api, key, val)
+
+
     @classmethod
     def setup_lib(cls, lib_path=None):
         """
@@ -118,7 +135,7 @@ class TesseractHandler(object):
             return
         lib_path = ctypes.util.find_library(lib_path)
         if lib_path is None:
-            raise PyTessyError('Ctypes couldn\'t find Tesseract-OCR library')
+             raise PyTessyError('Ctypes couldn\'t find Tesseract-OCR library')
         cls._lib = lib = ctypes.CDLL(lib_path)
 
         lib.TessBaseAPICreate.restype = cls.TessBaseAPI         # handle
@@ -138,12 +155,16 @@ class TesseractHandler(object):
                                             ctypes.c_int,       # bytes_per_pixel
                                             ctypes.c_int)       # bytes_per_line
 
+        lib.TessBaseAPISetVariable.argtypes = (cls.TessBaseAPI, ctypes.c_char_p, ctypes.c_char_p)
+
         lib.TessBaseAPIGetUTF8Text.restype = ctypes.c_char_p        # text
         lib.TessBaseAPIGetUTF8Text.argtypes = (cls.TessBaseAPI, )   # handle
 
-        lib.TessBaseAPISetSourceResolution.restype = None                # void
-        lib.TessBaseAPISetSourceResolution.argtypes = (cls.TessBaseAPI,  # handle
-                                                       ctypes.c_int)     # ppi
+        lib.TessBaseAPISetSourceResolution.restype = None               # void
+        lib.TessBaseAPISetSourceResolution.argtypes = (cls.TessBaseAPI, # handle
+                                                       ctypes.c_int)    # ppi
+
+
 
     def _check_setup(self):
         """
@@ -158,6 +179,8 @@ class TesseractHandler(object):
         if not self._api:
             raise PyTessyError('Tesseract handler api not created.')
 
+
+
     def __del__(self):
         """
         Disconnects TessBaseAPI when instance is deleted
@@ -169,6 +192,7 @@ class TesseractHandler(object):
         if not getattr(self, 'closed', False):
             self._lib.TessBaseAPIDelete(self._api)
             self.closed = True
+
 
 
 class PyTessy(object):
@@ -183,6 +207,7 @@ class PyTessy(object):
     TESSERACT_DIRNAME = 'Tesseract-OCR'
     TESSERACT_DEFAULT_HORIZONTAL_DPI = 70
     VERSION = '0.0.1'
+
 
     def __init__(self, tesseract_path=None, api_version=None, lib_path=None,
                  data_path=None, language='eng', verbose_search=False):
@@ -258,6 +283,7 @@ class PyTessy(object):
                     raise FileNotFoundError('Cannot locate Tesseract-OCR library.')
             elif platform.startswith('linux'):
                 findProgram = find_executable('tesseract')
+                print(findProgram)
                 if len(findProgram) == 0:
                     raise FileNotFoundError('Cannot locate Tesseract-OCR library.')
                 else:
@@ -291,8 +317,13 @@ class PyTessy(object):
                                       language=language)
         chdir(origPath)
 
+#    def set_variable(self, key, val):
+#        self._check_setup()
+#        self._lib.TessBaseAPISetVariable(self._api, key, val)
+
+
     def justread(self, raw_image_ctypes, width, height, bytes_per_pixel,
-                  bytes_per_line, resolution=96):
+                  bytes_per_line, psm, white_list, resolution=96):
         """
         Reads text as utf-8 string from raw image data without any check
         ----------------------------------------------------------------
@@ -306,13 +337,17 @@ class PyTessy(object):
         @Return: (sting)                                Text read by Tesseract-OCR
                                                         as utf-8 string.
         """
-
+        self.set_variable(b"tessedit_char_whitelist", str.encode(white_list))
+        self.set_variable(b"tessedit_pageseg_mode", bytes(psm))
+        print(dir(self))
         self._tess.set_image(raw_image_ctypes, width, height, bytes_per_pixel,
                              bytes_per_line, resolution)
         return self._tess.get_text()
 
+
+
     def justread_raw(self, raw_image_ctypes, width, height, bytes_per_pixel,
-                     bytes_per_line, resolution=96):
+                     bytes_per_line, psm, white_list, resolution=96):
         """
         Reads text as raw bytes data from raw image data without any check
         ------------------------------------------------------------------
@@ -326,12 +361,15 @@ class PyTessy(object):
         @Return: (bytes)                                Text read by Tesseract-OCR
                                                         as raw bytes data.
         """
-
+        self._tess.set_variable(b"tessedit_char_whitelist", str.encode(white_list))
+        self._tess.set_variable(b"tessedit_pageseg_mode", bytes(psm))
         self._tess.set_image(raw_image_ctypes, width, height, bytes_per_pixel,
                              bytes_per_line, resolution)
         return self._tess.get_text()
 
-    def read(self, imagedata, width, height, bytes_per_pixel, resolution=96,
+
+
+    def read(self, imagedata, width, height, bytes_per_pixel,psm, white_list, resolution=96,
              raw=False):
         """
         Reads text from image data
@@ -350,15 +388,15 @@ class PyTessy(object):
         bytes_per_line = width * bytes_per_pixel
         if raw:
             return self.justread_raw(imagedata, width, height, bytes_per_pixel,
-                                     bytes_per_line, resolution)
+                                     bytes_per_line, psm, white_list, resolution)
         else:
             return self.justread(imagedata, width, height, bytes_per_pixel,
-                                 bytes_per_line, resolution)
+                                 bytes_per_line, psm, white_list, resolution)
 
 
 def write_text_out(txt, image_path):
     text_path = re.sub('.png', '.txt', image_path, flags = re.I)
-    text_path = re.sub('cleaned', 'out', text_path, flags = re.I)
+    text_path = re.sub('cleaned', 'text', text_path, flags = re.I)
     f = open(text_path, 'w')
     f.write(txt)
     f.close()
@@ -367,22 +405,13 @@ def write_text_out(txt, image_path):
           datetime.now().strftime("%d/%m/%Y %H:%M:%S"))
 
 
-def png_to_txt(image_path, ocrReader):
+def png_to_txt(image_path, ocrReader, psm, white_list):
     """
     param:
     - image_path: path to the image that I want read
     - ocrReader: passed from the outer loop to save train overheads
     """
-
     img = Image.open(image_path)
-
-    # Optional: Scale up image change '1'
-    #w, h = img.size
-    #img = img.resize((1 * w, 1 * h))
-
-    # Optional: Sharpen image
-    #img = img.convert('RGB')
-    #img = img.filter(ImageFilter.SHARPEN)
 
     img = ImageOps.grayscale(img)
 
@@ -392,6 +421,6 @@ def png_to_txt(image_path, ocrReader):
 
     # Use OCR on Image
     imageStr = ocrReader.read(img.tobytes(), img.width,
-                              img.height, bytesPerPixel, raw=True,
+                              img.height, bytesPerPixel, psm, white_list, raw=True,
                               resolution=96)
     write_text_out(imageStr, image_path)
