@@ -4,10 +4,13 @@ rm(list = ls())
 library(data.table)
 library(tidyverse)
 library(knitr)
+library(scales)
+
+setwd('~/Documents/work/github/probate/src/params')
 
 output <- data.table(size = numeric(), accuracy = numeric(), year = numeric())
 
-years <- 1858:1914
+years <- 1858:1934
 
 for (i in 1:length(years)) {
   

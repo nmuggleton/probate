@@ -1,4 +1,13 @@
-# 1. Install dependencies
+## ------------------------------------------------------------------------
+## Script name: setup.sh
+## Purpose of script: Install Tesseract and other dependencies
+## Dependencies: None
+## Author: Naomi Muggleton
+## Date created: 15/01/2021
+## Date last modified: 17/01/2021
+## ------------------------------------------------------------------------
+
+# 1. Install core dependencies
 sudo yum update
 sudo yum install gcc -y
 sudo yum install gcc-c++ -y
@@ -42,5 +51,4 @@ sudo ldconfig
 # 4. Download trained language data to tessdata
 cd /usr/local/share/tessdata || exit
 sudo wget https://github.com/tesseract-ocr/tessdata/raw/master/eng.traineddata
-# sudo mv -v eng.traineddata /usr/local/share/
 export TESSDATA_PREFIX=/usr/local/share/

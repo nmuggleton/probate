@@ -18,6 +18,7 @@ from distutils.spawn import find_executable
 from PIL import Image, ImageOps
 from datetime import datetime
 
+
 class PyTessyError(Exception):
     """
     PyTessyError class
@@ -25,7 +26,6 @@ class PyTessyError(Exception):
     Empty subclass of Exception to throw module-specific errors.
     """
     pass
-
 
 
 class TesseractHandler(object):
@@ -37,8 +37,6 @@ class TesseractHandler(object):
     _lib = None
     _api = None
 
-
-
     class TessBaseAPI(ctypes._Pointer):
         """
         TessBaseAPI
@@ -47,8 +45,6 @@ class TesseractHandler(object):
         """
 
         _type_ = type('_TessBaseAPI', (ctypes.Structure,), {})
-
-
 
     def __init__(self, lib_path=None,  data_path=None, language='eng'):
         """
@@ -66,7 +62,6 @@ class TesseractHandler(object):
                                       language.encode('ascii')):
             raise PyTessyError('Failed to initalize Tesseract-OCR library.')
 
-
     def get_text(self):
         """
         Gets text as utf-8 decoded string
@@ -79,8 +74,6 @@ class TesseractHandler(object):
         if result:
             return result.decode('utf-8')
 
-
-
     def get_text_raw(self):
         """
         Gets text as raw bytes data
@@ -90,8 +83,6 @@ class TesseractHandler(object):
 
         self._check_setup()
         return self._lib.TessBaseAPIGetUTF8Text(self._api)
-
-
 
     def set_image(self, imagedata, width, height, bytes_per_pixel, bytes_per_line,
                   resolution):
@@ -121,7 +112,6 @@ class TesseractHandler(object):
         self._check_setup()
         self._lib.TessBaseAPISetVariable(self._api, key, val)
 
-
     @classmethod
     def setup_lib(cls, lib_path=None):
         """
@@ -135,7 +125,7 @@ class TesseractHandler(object):
             return
         lib_path = ctypes.util.find_library(lib_path)
         if lib_path is None:
-             raise PyTessyError('Ctypes couldn\'t find Tesseract-OCR library')
+            raise PyTessyError('Ctypes couldn\'t find Tesseract-OCR library')
         cls._lib = lib = ctypes.CDLL(lib_path)
 
         lib.TessBaseAPICreate.restype = cls.TessBaseAPI         # handle
@@ -144,12 +134,12 @@ class TesseractHandler(object):
         lib.TessBaseAPIDelete.argtypes = (cls.TessBaseAPI,)     # handle
 
         lib.TessBaseAPIInit3.argtypes = (cls.TessBaseAPI,       # handle
-                                         ctypes.c_char_p,       # datapath
+                                         ctypes.c_char_p,       # data path
                                          ctypes.c_char_p)       # language
 
         lib.TessBaseAPISetImage.restype = None                  # void
         lib.TessBaseAPISetImage.argtypes = (cls.TessBaseAPI,    # handle
-                                            ctypes.c_void_p,    # imagedata
+                                            ctypes.c_void_p,    # image data
                                             ctypes.c_int,       # width
                                             ctypes.c_int,       # height
                                             ctypes.c_int,       # bytes_per_pixel
@@ -160,11 +150,9 @@ class TesseractHandler(object):
         lib.TessBaseAPIGetUTF8Text.restype = ctypes.c_char_p        # text
         lib.TessBaseAPIGetUTF8Text.argtypes = (cls.TessBaseAPI, )   # handle
 
-        lib.TessBaseAPISetSourceResolution.restype = None               # void
-        lib.TessBaseAPISetSourceResolution.argtypes = (cls.TessBaseAPI, # handle
-                                                       ctypes.c_int)    # ppi
-
-
+        lib.TessBaseAPISetSourceResolution.restype = None                # void
+        lib.TessBaseAPISetSourceResolution.argtypes = (cls.TessBaseAPI,  # handle
+                                                       ctypes.c_int)     # ppi
 
     def _check_setup(self):
         """
@@ -179,8 +167,6 @@ class TesseractHandler(object):
         if not self._api:
             raise PyTessyError('Tesseract handler api not created.')
 
-
-
     def __del__(self):
         """
         Disconnects TessBaseAPI when instance is deleted
@@ -192,7 +178,6 @@ class TesseractHandler(object):
         if not getattr(self, 'closed', False):
             self._lib.TessBaseAPIDelete(self._api)
             self.closed = True
-
 
 
 class PyTessy(object):
@@ -207,7 +192,6 @@ class PyTessy(object):
     TESSERACT_DIRNAME = 'Tesseract-OCR'
     TESSERACT_DEFAULT_HORIZONTAL_DPI = 70
     VERSION = '0.0.1'
-
 
     def __init__(self, tesseract_path=None, api_version=None, lib_path=None,
                  data_path=None, language='eng', verbose_search=False):
@@ -282,16 +266,16 @@ class PyTessy(object):
                 if lib_path is None:
                     raise FileNotFoundError('Cannot locate Tesseract-OCR library.')
             elif platform.startswith('linux'):
-                findProgram = find_executable('tesseract')
-                print(findProgram)
-                if len(findProgram) == 0:
+                find_program = find_executable('tesseract')
+                print(find_program)
+                if len(find_program) == 0:
                     raise FileNotFoundError('Cannot locate Tesseract-OCR library.')
                 else:
                     lib_path = 'tesseract'
                     data_path = "/usr/share/tessdata/"
             elif platform.startswith('darwin'):
-                findProgram = find_executable('tesseract')
-                if len(findProgram) == 0:
+                find_program = find_executable('tesseract')
+                if len(find_program) == 0:
                     raise FileNotFoundError('Cannot locate Tesseract-OCR library.')
                 else:
                     lib_path = 'tesseract'
@@ -311,19 +295,18 @@ class PyTessy(object):
                     break
             if data_path is None:
                 raise FileNotFoundError('PyTessy: Couldn\'t find "tessdata" directory.')
-        origPath = getcwd()
+        orig_path = getcwd()
         chdir(tess_path)
         self._tess = TesseractHandler(lib_path=lib_path, data_path=data_path,
                                       language=language)
-        chdir(origPath)
+        chdir(orig_path)
 
 #    def set_variable(self, key, val):
 #        self._check_setup()
 #        self._lib.TessBaseAPISetVariable(self._api, key, val)
 
-
     def justread(self, raw_image_ctypes, width, height, bytes_per_pixel,
-                  bytes_per_line, psm, white_list, resolution=96):
+                 bytes_per_line, psm, white_list, resolution=96):
         """
         Reads text as utf-8 string from raw image data without any check
         ----------------------------------------------------------------
@@ -343,8 +326,6 @@ class PyTessy(object):
         self._tess.set_image(raw_image_ctypes, width, height, bytes_per_pixel,
                              bytes_per_line, resolution)
         return self._tess.get_text()
-
-
 
     def justread_raw(self, raw_image_ctypes, width, height, bytes_per_pixel,
                      bytes_per_line, psm, white_list, resolution=96):
@@ -367,9 +348,7 @@ class PyTessy(object):
                              bytes_per_line, resolution)
         return self._tess.get_text()
 
-
-
-    def read(self, imagedata, width, height, bytes_per_pixel,psm, white_list, resolution=96,
+    def read(self, imagedata, width, height, bytes_per_pixel, psm, white_list, resolution=96,
              raw=False):
         """
         Reads text from image data
@@ -401,26 +380,26 @@ def write_text_out(txt, image_path):
     f.write(txt)
     f.close()
     # Optional progress updates
-    print(text_path.split('/')[-1] + ' complete at: ' + \
+    print(text_path.split('/')[-1] + ' complete at: ' +
           datetime.now().strftime("%d/%m/%Y %H:%M:%S"))
 
 
-def png_to_txt(image_path, ocrReader, psm, white_list):
+def png_to_txt(image_path, ocr_reader, psm, white_list):
     """
     param:
     - image_path: path to the image that I want read
-    - ocrReader: passed from the outer loop to save train overheads
+    - ocr_reader: passed from the outer loop to save train overheads
     """
     img = Image.open(image_path)
 
     img = ImageOps.grayscale(img)
 
     # Convert to ctypes
-    imgBytes = img.tobytes()
-    bytesPerPixel = int(len(imgBytes) / (img.width * img.height))
+    img_bytes = img.tobytes()
+    bytes_per_pixel = int(len(img_bytes) / (img.width * img.height))
 
     # Use OCR on Image
-    imageStr = ocrReader.read(img.tobytes(), img.width,
-                              img.height, bytesPerPixel, psm, white_list, raw=True,
-                              resolution=96)
-    write_text_out(imageStr, image_path)
+    image_str = ocr_reader.read(img.tobytes(), img.width,
+                                img.height, bytes_per_pixel, psm, white_list, raw=True,
+                                resolution=96)
+    write_text_out(image_str, image_path)

@@ -1,100 +1,117 @@
 """
-Script name:
-Purpose of script:
-Dependencies:
+Script name: 04-regex/main.py
+Purpose of script: Extract data from .txt files
+Dependencies: 03-ocr/main.py
 Author: Naomi Muggleton
 Date created: 19/04/2021
-Date last modified: 19/04/2021
+Date last modified: 21/06/2021
 """
 
-# Import modules
 import os
-import regex as re
+import nltk
+import re
 import pandas as pd
-from fuzzywuzzy import fuzz
+from fuzzywuzzy import process
+
+
+def filenames(input_path, y):
+    # Find file names
+    path = os.path.join('/Volumes/T7/probate_files', input_path, str(y))
+    file_names = []
+    for r, d, f in os.walk(path):
+        for file_name in f:
+            if '.txt' in file_name:
+                if '._' not in file_name:
+                    file_names.append(os.path.join(r, file_name))
+    # Tidy files
+    file_names.sort()
+    return file_names
+
+
+# Split into people
+def par_tokenize(text):
+    paragraphs = re.compile(r'(?ms)\s(?=[A-Z]+\s\w+)').split(text)
+    paragraphs = [p for p in paragraphs if len(nltk.sent_tokenize(p)) >= 4]
+    return paragraphs
+
 
 # Set parameters
-year = 1858
+year = 1861
 i = 'text'
 
-# Set display settings
-pd.set_option('display.max_rows', 10)
-pd.set_option('display.max_columns', 10)
-pd.set_option('display.width', 200)
-pd.set_option('display.max_colwidth', 80)
-
 # List files
-filepath = os.path.join('/', 'Volumes', 'T7', 'probate_files', i, str(year))
-files = os.listdir(filepath)
-files.sort()
-files = ['/'.join([filepath, file]) for file in files]
+files = filenames(i, year)
 
-# Import text
-df = pd.DataFrame(columns = ['file', 'page', 'person'])
+data = []
 
-tried = []
 for file in files:
-    try:
-        page = open(file, 'r').read()
-        page = re.sub(r'\. \.', '.', page)
-        page = re.sub(r'\n\s+', '\n', page)
-        page = re.sub(r'\s+\n', '\n', page)
-        page = re.sub(r'\s+-', '', page)
-        page = re.sub(r'\.\s+\.', '.', page)
-        page = re.split(r'(?<=\d{4}.*)\n', page, maxsplit = 1)
-        meta = page[0]
-        people = re.split(r'\n(?=[A-Z]+\s+[A-Z][a-z]+)', page[1])
-        page_output = list(zip([file] * len(people), [meta] * len(people), people))
-        page_df = pd.DataFrame(page_output, columns = ['file', 'page', 'person'])
-        df = df.append(page_df, ignore_index = True)
-        print(file)
-    except IndexError:
-        tried.append(file)
 
+    """
+    SPLIT BY PAGE
+    """
 
-# Drop pages that are in irregular format
-keywords = [
-    'IRISH', 'PROBATES', 'SEALED', 'SCOTCH', 'CONFIRMATIONS', 'PROVED', 'PREROGATIVE', 'COURT', 'CANTERBURY', 'GRANTED'
-]
+    # Import page
+    page = open(file, 'r').read()
 
-keyword_string = '|'.join(keywords)
-df = df[~df['page'].str.contains(keyword_string)]
+    # Differentiate between word boundaries and cross-line hyphenation
+    page = page.replace('-\n', '')
+    page = page.replace('\\', '')
 
-# Identify whether the page contains wills or administrations
-row_count = df.shape[0]
-df['type'] = ''
+    """
+    SPLIT BY INDIVIDUAL
+    """
+    # Each item in list represents an individual
+    people = par_tokenize(page)
 
-for row in list(range(row_count)):
-    string = df.loc[:, 'page'].iloc[row]
-    wills = fuzz.partial_ratio(string, 'WILLS')
-    if wills >= 70:
-        probate_type = 'wills'
-    else:
-        administrations = fuzz.partial_ratio(string, 'ADMINISTRATIONS')
-        if administrations >= 70:
-            probate_type = 'administrations'
+    for person in people:
+        sentence_list = nltk.sent_tokenize(person)
+        sentence_dict = {idx: el for idx, el in enumerate(sentence_list)}
+
+        """
+        NAME OF DECEASED
+        """
+        if re.match(r'^[A-Z]+\s\w', sentence_list[0]):
+            name = sentence_list[0]
         else:
-            probate_type = ''
-    df.loc[:, 'type'].iloc[row] = probate_type
-    print(row)
+            name = ''
 
-df['year'] = df['page'].str.extract(r'(\b\d{4}\b)', expand = True)
-df['page_no'] = df['page'].str.extract(r'(\b\d{1,3}\b)', expand = True)
-df['name'] = df['person'].str.extract(r'(^[A-Z]+(\s[A-Z][a-z]+)+)\.', expand = True)[0]
-df['proved'] = df['person'].str.extract(r'(\d+\s\w+)')
-df['effects'] = df['person'].str.extract(r'\n.*(£\d+(,\d+)?)', expand = True)
+        """
+        DATE PROVED
+        """
+        if re.match(r'^\d{1,2}\s[A-Z][a-z]+', sentence_list[1]):
+            date = re.findall(r'\d{1,2}\s[A-Z][a-z]+', sentence_list[1])[0]
+        elif re.match(r'\d{1,2}\s[A-Z][a-z]+', sentence_list[0]):
+            date = re.findall(r'\d{1,2}\s[A-Z][a-z]+', sentence_list[0])[0]
+        else:
+            date = ''
+        """
+        EFFECTS
+        """
+        matches = process.extract("Effects under £", sentence_dict, limit = 1)
+        match_index = matches[0][2]
+        effects_sentence = sentence_list[match_index]
+        try:
+            effects = re.findall(r'\w+\s\w+\s£\d.*', effects_sentence)[0]
+        except IndexError:
+            effects = ''
 
-df['leftover'] = df['person'].str.split(r'\.', expand = True)
-df['name_str'] = df['person'].str.split(r'\.', expand = True)[0]
-df['proved_str'] = df['person'].str.split(r'\.', expand = True)[1]
-df['will_str'] = df['person'].str.split(r'\.', expand = True, n = 2)[2]
-df['person_str'] = df['person'].str.split(r'(?= (The Will|Letters))', expand = True, n = 2)[2]
-df['person_str'] = df['person_str'].str.replace(r'\n', ' ')
-df['person_str'] = df['person_str'].str.replace(r'[A-Za-z]+ [A-Za-z]+ £\d+(\. )?', '')
-df['person_str'] = df['person_str'].str.replace(r'\s+', ' ')
-df['person'].str.rsplit('died', expand = True, n = 1)
+        """
+        BIO
+        """
+        bio = ' '.join(sentence_list[2:])
+        bio = re.sub('\n', ' ', bio)
+        bio = re.sub(effects, '', bio)
+        bio = re.sub(r'\s\s', ' ', bio)
 
+        output = {'name': name, 'effects': effects, 'date': date, 'bio': bio}
 
-df.dropna(subset = ['name'])
-df.dropna(subset = ['proved'])
-df.dropna(subset = ['effects'])
+        data.append(output)
+        print(name)
+
+df = pd.DataFrame(data)
+
+df.to_csv(
+    '/Volumes/T7/probate_files/regex_output/%d.csv' % year,
+    index = False
+)
+
